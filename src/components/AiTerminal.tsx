@@ -3,6 +3,7 @@
 import React from "react";
 import { usePrivy, useLogin, useLogout } from "@privy-io/react-auth";
 import Image from "next/image";
+import { BiSolidSend } from "react-icons/bi";
 
 /* ===========================
  * Types & constants
@@ -19,12 +20,14 @@ const WELCOME_MSG = "Welcome! Connect your wallet and ask me anything.";
 const NEW_CHAT_MSG = "New chat started. Ask your question.";
 const AI_ENDPOINT = "/api/ai";
 const REQUEST_TIMEOUT_MS = 20_000;
-const AVATAR_IMG = "/ai_agent_no_bg.png";
+const AVATAR_IMG = "/block_head.png";
+const USER_AVATARS = ["/habibi_user.png", "/chinese_user.png", "/man_user.png", "/girl_user.png"];
 const QUICK_PROMPTS: string[] = [
   "help",
   "time",
-  "Summarize the latest crypto news in 3 bullets",
+  "Summarize ETH valuation in 3 bullets",
   "Explain rollups like I'm five",
+  "What's my balance?",
 ];
 
 /* ===========================
@@ -35,6 +38,10 @@ function cryptoRandomId() {
     return (crypto as { randomUUID: () => string }).randomUUID();
   }
   return Math.random().toString(36).slice(2);
+}
+
+function getRandomUserAvatar() {
+  return USER_AVATARS[Math.floor(Math.random() * USER_AVATARS.length)];
 }
 
 function shortAddress(addr?: string) {
@@ -151,7 +158,7 @@ function HeaderBar({
         ) : (
           <button
             onClick={onLogin}
-            className="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-600"
+            className="rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-600"
           >
             Connect Wallet
           </button>
@@ -168,15 +175,11 @@ function QuickActions({
   prompts,
   disabled,
   onUsePrompt,
-  onRegenerate,
-  onCopy,
   onClear,
 }: {
   prompts: string[];
   disabled: boolean;
   onUsePrompt: (p: string) => void;
-  onRegenerate: () => void;
-  onCopy: () => void;
   onClear: () => void;
 }) {
   return (
@@ -192,25 +195,11 @@ function QuickActions({
             {qp}
           </button>
         ))}
-        <div className="ml-auto flex gap-2">
-          <button
-            disabled={disabled}
-            onClick={onRegenerate}
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/70 transition hover:bg-white/10 disabled:opacity-50"
-          >
-            Regenerate
-          </button>
-          <button
-            disabled={disabled}
-            onClick={onCopy}
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/70 transition hover:bg-white/10 disabled:opacity-50"
-          >
-            Copy
-          </button>
+        <div className="ml-auto">
           <button
             disabled={disabled}
             onClick={onClear}
-            className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+            className="rounded-xl border border-red-500/50 bg-red-500/10 px-3 py-1.5 text-sm text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
           >
             Clear
           </button>
@@ -223,7 +212,7 @@ function QuickActions({
 /* ===========================
  * Chat bubbles
  * =========================== */
-function Bubble({ role, content }: { role: ChatMessage["role"]; content: string }) {
+function Bubble({ role, content, userAvatar }: { role: ChatMessage["role"]; content: string; userAvatar: string }) {
   const isUser = role === "user";
   const isError = role === "error";
   const isSystem = role === "system";
@@ -231,12 +220,12 @@ function Bubble({ role, content }: { role: ChatMessage["role"]; content: string 
   const base =
     "max-w-[75ch] rounded-2xl px-4 py-3 text-[15px] leading-relaxed break-words shadow-lg";
   const style = isUser
-    ? "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white"
+    ? "bg-gradient-to-br from-orange-500 to-orange-600 text-white"
     : isError
-    ? "bg-red-500/10 text-red-200 ring-1 ring-red-500/30"
+    ? "bg-red-500/10 text-red-200 ring-1 ring-red-500/50"
     : isSystem
-    ? "bg-amber-500/10 text-amber-200 ring-1 ring-amber-400/30"
-    : "bg-white/5 text-white ring-1 ring-white/10";
+    ? "bg-amber-500/10 text-amber-200 ring-1 ring-amber-400/50"
+    : "bg-white/5 text-white ring-1 ring-white/20";
 
   return (
     <div className="grid grid-cols-[56px_1fr_56px] items-end gap-3">
@@ -263,8 +252,8 @@ function Bubble({ role, content }: { role: ChatMessage["role"]; content: string 
 
       {isUser ? (
         <div className="col-start-3 col-end-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-sm font-semibold text-white ring-1 ring-white/15">
-            U
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15 overflow-hidden">
+            <Image src={userAvatar} alt="User" width={48} height={48} className="object-cover" />
           </div>
         </div>
       ) : (
@@ -341,7 +330,7 @@ function Composer({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="block w-full resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-[15px] text-white outline-none transition focus:ring-2 focus:ring-emerald-400/30 min-h-[56px] max-h-[200px]"
+            className="block w-full resize-none rounded-2xl border border-white/20 bg-white/5 px-4 py-3 pr-12 text-[15px] text-white outline-none transition focus:ring-2 focus:ring-orange-400/30 min-h-[56px] max-h-[200px]"
           />
           <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/40">
             ↵
@@ -351,9 +340,9 @@ function Composer({
         <button
           type="submit"
           disabled={disabled || !value.trim()}
-          className="self-stretch rounded-2xl bg-emerald-500 px-5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-600 disabled:opacity-50 flex items-center justify-center min-w-[96px]"
+          className="self-stretch rounded-2xl bg-orange-500 px-5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center min-w-[96px]"
         >
-          Send
+          <BiSolidSend className="h-5 w-5 text-white" />
         </button>
       </form>
     </div>
@@ -373,6 +362,9 @@ export default function AiTerminal() {
   const [messages, setMessages] = React.useState<ChatMessage[]>([
     { id: cryptoRandomId(), role: "system", content: WELCOME_MSG },
   ]);
+
+  // Choose user avatar once when component renders
+  const userAvatar = React.useMemo(() => getRandomUserAvatar(), []);
 
   const chatRef = React.useRef<HTMLDivElement>(null);
 
@@ -410,18 +402,6 @@ export default function AiTerminal() {
     setMessages([{ id: cryptoRandomId(), role: "system", content: NEW_CHAT_MSG }]);
   }, []);
 
-  const regenerateLast = React.useCallback(async () => {
-    const lastUser = [...messages].reverse().find((m) => m.role === "user");
-    if (lastUser) await submitPrompt(lastUser.content);
-  }, [messages, submitPrompt]);
-
-  const copyLastAssistant = React.useCallback(async () => {
-    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
-    if (lastAssistant && navigator.clipboard) {
-      await navigator.clipboard.writeText(lastAssistant.content);
-    }
-  }, [messages]);
-
   const shortAddr = shortAddress(user?.wallet?.address);
   const canInteract = ready && authenticated && !busy;
 
@@ -430,7 +410,7 @@ export default function AiTerminal() {
       {/* background */}
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
         <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
-        <div className="absolute inset-0 -z-10 [background:radial-gradient(600px_200px_at_20%_0%,rgba(16,185,129,0.12),transparent),radial-gradient(600px_200px_at_80%_0%,rgba(147,51,234,0.12),transparent)]" />
+        <div className="absolute inset-0 -z-10 [background:radial-gradient(600px_200px_at_20%_0%,rgba(249,115,22,0.12),transparent),radial-gradient(600px_200px_at_80%_0%,rgba(147,51,234,0.12),transparent)]" />
       </div>
 
       <main className="mx-auto w-full max-w-6xl px-4 py-6">
@@ -449,7 +429,7 @@ export default function AiTerminal() {
           >
             <div className="mx-auto flex max-w-4xl flex-col gap-6">
               {messages.map((m) => (
-                <Bubble key={m.id} role={m.role} content={m.content} />
+                <Bubble key={m.id} role={m.role} content={m.content} userAvatar={userAvatar} />
               ))}
               {busy && <TypingIndicator />}
             </div>
@@ -459,8 +439,6 @@ export default function AiTerminal() {
             prompts={QUICK_PROMPTS}
             disabled={!authenticated || busy}
             onUsePrompt={submitPrompt}
-            onRegenerate={regenerateLast}
-            onCopy={copyLastAssistant}
             onClear={clearChat}
           />
 
