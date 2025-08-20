@@ -4,8 +4,8 @@ export default function GlassCard(props: React.PropsWithChildren<{ className?: s
   return (
     <div
       className={
-        "rounded-3xl border border-white/10 bg-zinc-900/40 " +
-        "backdrop-blur supports-[backdrop-filter]:bg-zinc-900/30 shadow-2xl " +
+        "rounded-3xl border border-white/10 bg-zinc-800/40 " +
+        "backdrop-blur supports-[backdrop-filter]:bg-zinc-800/30 shadow-2xl shadow-black/20 " +
         (props.className ?? "")
       }
     >

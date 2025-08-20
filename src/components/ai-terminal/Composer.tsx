@@ -58,7 +58,7 @@ export default function Composer({
   }, [confirmOpen]);
 
   return (
-    <div className="border-t border-white/10 bg-black/30">
+    <div className="border-t border-white/10 bg-black/20">
       <form
         onSubmit={handleSubmit}
         className="mx-auto grid max-w-4xl grid-cols-[1fr_auto] items-stretch gap-3 px-4 py-4"
@@ -104,14 +104,14 @@ export default function Composer({
               ref={popoverRef}
               role="dialog"
               aria-modal="true"
-              className="absolute right-0 bottom-full mb-2 w-[260px] rounded-2xl border border-white/10 bg-zinc-900/95 p-3 text-white shadow-xl ring-1 ring-white/10"
+              className="absolute right-0 bottom-full mb-2 w-[260px] rounded-3xl border border-white/10 bg-zinc-900/95 p-3 text-white shadow-xl ring-1 ring-white/10"
             >
               <div className="text-sm text-white/90">Clear the conversation? This cannot be undone.</div>
               <div className="mt-3 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setConfirmOpen(false)}
-                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 transition hover:bg-white/10"
+                                     className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 transition hover:bg-white/10"
                 >
                   Cancel
                 </button>
@@ -121,7 +121,7 @@ export default function Composer({
                     setConfirmOpen(false);
                     onClear();
                   }}
-                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700"
+                                     className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700"
                   autoFocus
                 >
                   Confirm

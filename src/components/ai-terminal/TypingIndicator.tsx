@@ -5,7 +5,7 @@ export default function TypingIndicator() {
   return (
     <div className="grid grid-cols-[56px_1fr_56px] items-end gap-3">
       <div className="col-start-1 col-end-2">
-        <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl ring-1 ring-white/15">
+                   <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-3xl ring-1 ring-white/15">
           <Image src={AVATAR_IMG} alt="AI Agent" width={56} height={56} className="object-cover" />
         </div>
       </div>

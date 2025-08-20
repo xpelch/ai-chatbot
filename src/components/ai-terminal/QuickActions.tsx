@@ -8,7 +8,7 @@ export default function QuickActions({
   onUsePrompt: (p: string) => void;
 }) {
   return (
-    <div className="border-t border-white/10 bg-black/20">
+    <div className="border-t border-white/10 bg-black/10">
       <div className="mx-auto flex max-w-4xl items-center gap-2 overflow-x-auto px-5 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {prompts.map((qp) => (
           <button

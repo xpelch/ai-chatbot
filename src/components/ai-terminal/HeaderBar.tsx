@@ -17,7 +17,7 @@ export default function HeaderBar({
   return (
     <div className="flex items-center justify-between gap-4 px-5 py-4">
       <div className="flex items-center gap-3">
-        <div className="relative h-9 w-9 overflow-hidden rounded-xl ring-1 ring-white/15">
+                 <div className="relative h-9 w-9 overflow-hidden rounded-2xl ring-1 ring-white/15">
           <Image src={AVATAR_IMG} alt="AI Agent" width={36} height={36} className="object-cover" />
         </div>
         <div className="flex items-baseline gap-2">

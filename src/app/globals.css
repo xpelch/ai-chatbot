@@ -14,7 +14,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #111111;
     --foreground: #ededed;
     --scrollbar-thumb: rgba(249, 115, 22, 0.35); /* orange-500 with opacity */
     --scrollbar-thumb-hover: rgba(249, 115, 22, 0.55);

@@ -75,8 +75,8 @@ export default function AiTerminal() {
   const canInteract = ready && authenticated && !busy;
 
   return (
-    <div className="relative min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+    <div className="relative min-h-screen bg-zinc-900 text-zinc-100">
+      <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden>
         <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
         <div className="absolute inset-0 -z-10 [background:radial-gradient(600px_200px_at_20%_0%,rgba(249,115,22,0.12),transparent),radial-gradient(600px_200px_at_80%_0%,rgba(147,51,234,0.12),transparent)]" />
       </div>
