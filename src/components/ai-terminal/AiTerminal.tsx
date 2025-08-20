@@ -107,7 +107,6 @@ export default function AiTerminal() {
             prompts={QUICK_PROMPTS}
             disabled={!authenticated || busy}
             onUsePrompt={submitPrompt}
-            onClear={clearChat}
           />
 
           <Composer
@@ -116,6 +115,7 @@ export default function AiTerminal() {
             onChange={setInput}
             onSubmit={() => submitPrompt(input)}
             onEnterSend={() => submitPrompt(input)}
+            onClear={clearChat}
             placeholder={authenticated ? "Message Blockhead…" : "Connect wallet to chat"}
           />
         </GlassCard>
