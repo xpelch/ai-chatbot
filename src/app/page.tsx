@@ -1,4 +1,4 @@
-import AiTerminal from "@/components/AiTerminal";
+import AiTerminal from "@/components/ai-terminal/AiTerminal";
 
 export const dynamic = "force-dynamic";
 
