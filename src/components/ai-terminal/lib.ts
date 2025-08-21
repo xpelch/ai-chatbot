@@ -86,4 +86,36 @@ export async function fetchAiReply(prompt: string, timeoutMs = REQUEST_TIMEOUT_M
   }
 }
 
+export async function fetchAiStream(
+  prompt: string,
+  onChunk: (text: string) => void,
+  timeoutMs = REQUEST_TIMEOUT_MS
+): Promise<void> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${AI_ENDPOINT}?stream=1`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+      signal: controller.signal,
+    });
+    if (!res.ok || !res.body) {
+      // Fallback: consume as text
+      const text = await res.text();
+      if (text) onChunk(text);
+      return;
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      onChunk(decoder.decode(value, { stream: true }));
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 

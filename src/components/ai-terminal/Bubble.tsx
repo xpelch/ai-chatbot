@@ -1,6 +1,9 @@
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
+import rehypeHighlight from "rehype-highlight";
 import { AVATAR_IMG } from "./lib";
 
 export default function Bubble({ role, content, userAvatar }: { role: "user" | "assistant" | "system" | "error"; content: string; userAvatar: string }) {
@@ -40,8 +43,13 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
           {isUser ? (
             <div className="whitespace-pre-wrap">{content}</div>
           ) : (
-            <div className="prose prose-invert prose-sm max-w-none prose-li:marker:text-white/80 prose-ol:text-white prose-ul:text-white">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+            <div className="prose prose-invert prose-sm max-w-none prose-li:marker:text-white/80 prose-ol:text-white prose-ul:text-white prose-li:my-0 prose-ul:my-2 prose-ol:my-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6 [&_li]:my-1 [&_code]:text-orange-200 [&_pre]:bg-black/30 [&_pre]:p-3 [&_pre]:rounded-xl [&_pre_code]:text-[13px] [&_code]:rounded [&_code]:bg-black/30 [&_code]:px-1.5 [&_code]:py-0.5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:max-w-full [&_pre_code]:break-words [&_code]:break-words">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeSanitize]}
+              >
+                {content}
+              </ReactMarkdown>
             </div>
           )}
         </div>
