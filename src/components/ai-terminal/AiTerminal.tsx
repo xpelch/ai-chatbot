@@ -127,11 +127,11 @@ export default function AiTerminal() {
     }
   };
 
-  const mobileMainClass = `md:block ${
+  const mobileMainClass = `${
     mobileOpen
-      ? "fixed inset-0 z-40 w-full h-full p-2 opacity-100 translate-y-0"
-      : "fixed inset-0 z-40 w-full h-full p-2 opacity-0 translate-y-4 pointer-events-none"
-  } transition-all duration-300 ease-out`;
+      ? "fixed inset-0 z-40 w-full h-full p-2 md:static md:z-auto md:inset-auto md:w-auto md:h-auto md:p-0 md:block"
+      : "hidden md:block"
+  }`;
 
   return (
     <div className="relative min-h-screen bg-zinc-900 text-zinc-100 pb-16 md:pb-0">
