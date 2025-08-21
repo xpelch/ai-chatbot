@@ -2,7 +2,8 @@
 
 import React from "react";
 import { usePrivy, useLogin, useLogout } from "@privy-io/react-auth";
-import { BiSolidDockRight, BiSolidDockTop } from "react-icons/bi";
+import { BiSolidDockRight, BiSolidDockTop, BiChevronDown } from "react-icons/bi";
+import Image from "next/image";
 
 import GlassCard from "./GlassCard";
 import HeaderBar from "./HeaderBar";
@@ -38,6 +39,7 @@ export default function AiTerminal() {
   ]);
   const [firstChunkReceived, setFirstChunkReceived] = React.useState(false);
   const streamingIdRef = React.useRef<string | null>(null);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const userAvatar = React.useMemo(() => getRandomUserAvatar(), []);
   const chatRef = React.useRef<HTMLDivElement>(null);
@@ -68,7 +70,6 @@ export default function AiTerminal() {
           prompt,
           (chunk) => {
             if (!chunk) return;
-            // On first chunk, create the assistant bubble
             if (streamingIdRef.current === null) {
               const id = cryptoRandomId();
               streamingIdRef.current = id;
@@ -76,7 +77,6 @@ export default function AiTerminal() {
               setMessages((prev) => [...prev, { id, role: "assistant", content: chunk }]);
               return;
             }
-            // Otherwise, append to existing message
             const currentId = streamingIdRef.current;
             setMessages((prev) =>
               prev.map((m) => (m.id === currentId ? { ...m, content: m.content + chunk } : m))
@@ -85,7 +85,6 @@ export default function AiTerminal() {
           REQUEST_TIMEOUT_MS
         );
       } catch {
-        // Fallback to non-streaming single reply
         try {
           const reply = await fetchAiReply(prompt, REQUEST_TIMEOUT_MS);
           const currentId = streamingIdRef.current;
@@ -110,7 +109,7 @@ export default function AiTerminal() {
 
   const clearChat = React.useCallback(() => {
     setMessages([{ id: cryptoRandomId(), role: "system", content: NEW_CHAT_MSG }]);
-  }, []); 
+  }, []);
 
   const shortAddr = shortAddress(user?.wallet?.address);
   const canInteract = ready && authenticated && !busy;
@@ -122,27 +121,43 @@ export default function AiTerminal() {
   const getDockStyles = () => {
     switch (dockPosition) {
       case "right":
-        return "fixed right-4 top-4 bottom-4 w-[30%] z-50 flex flex-col transition-all duration-300 ease-in-out";
+        return "md:fixed md:right-4 md:top-4 md:bottom-4 md:w-[30%] z-50 md:flex md:flex-col transition-all duration-300 ease-in-out";
       default:
-        return "mx-auto w-full max-w-6xl px-4 py-4 h-[calc(100vh-32px)] transition-all duration-300 ease-in-out";
+        return "md:mx-auto md:w-full md:max-w-6xl md:px-4 md:py-4 md:h-[calc(100vh-32px)] transition-all duration-300 ease-in-out";
     }
   };
 
+  const mobileMainClass = `md:block ${
+    mobileOpen
+      ? "fixed inset-0 z-40 w-full h-full p-2 opacity-100 translate-y-0"
+      : "fixed inset-0 z-40 w-full h-full p-2 opacity-0 translate-y-4 pointer-events-none"
+  } transition-all duration-300 ease-out`;
+
   return (
-    <div className="relative min-h-screen bg-zinc-900 text-zinc-100">
+    <div className="relative min-h-screen bg-zinc-900 text-zinc-100 pb-16 md:pb-0">
       <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden>
         <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
         <div className="absolute inset-0 -z-10 [background:radial-gradient(600px_200px_at_20%_0%,rgba(249,115,22,0.12),transparent),radial-gradient(600px_200px_at_80%_0%,rgba(147,51,234,0.12),transparent)]" />
       </div>
 
-      <main className={getDockStyles()}>
+      <main className={`${mobileMainClass} ${getDockStyles()}`}>
+        {mobileOpen && (
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="absolute top-3 left-3 z-50 md:hidden flex h-8 w-8 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15 text-white hover:bg-white/15 transition"
+            aria-label="Close chat"
+            title="Close chat"
+          >
+            <BiChevronDown className="h-5 w-5" />
+          </button>
+        )}
         {dockPosition !== "center" && (
           <button
             onClick={toggleDock}
-            className="absolute -top-2 -left-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition-colors"
+            className="absolute -top-2 -left-2 z-10 hidden h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition-colors md:flex"
             title="Undock"
           >
-            <BiSolidDockTop className="h-4 w-5" />
+            <BiSolidDockTop className="h-4 w-4" />
           </button>
         )}
         <GlassCard className={`transition-all duration-300 ease-in-out ${dockPosition !== "center" ? "h-full flex flex-col" : "h-full flex flex-col"}`}>
@@ -185,18 +200,29 @@ export default function AiTerminal() {
           />
         </GlassCard>
       </main>
-      
+
       {dockPosition === "center" && (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="hidden md:fixed md:bottom-4 md:right-4 md:z-50 md:block">
           <button
             onClick={() => setDockPosition("right")}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition-all duration-200 ease-in-out transform hover:scale-105"
+            className="hidden h-12 w-12 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition-all duration-200 ease-in-out transform hover:scale-105 md:flex"
             title="Dock to right"
           >
             <BiSolidDockRight className="h-5 w-5" />
           </button>
         </div>
       )}
+
+      {/* Mobile toggle button */}
+      <div className={`fixed bottom-4 right-4 z-50 md:hidden transition-opacity duration-200 ${mobileOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+        <button
+          onClick={() => setMobileOpen((v) => !v)}
+          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur hover:bg-white/15 transition"
+          title={mobileOpen ? "Close chat" : "Open chat"}
+        >
+          <Image src="/block_head.png" alt="Blockhead" width={32} height={32} />
+        </button>
+      </div>
     </div>
   );
 }
