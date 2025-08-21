@@ -18,7 +18,6 @@ interface WalletMenuProps {
 
 export default function WalletMenu({ isOpen, onClose }: WalletMenuProps) {
   const { user, logout } = usePrivy();
-  const { wallets } = useWallets();
   const [copied, setCopied] = React.useState(false);
   const [ethBalance, setEthBalance] = React.useState<string | null>(null);
   const [ethPrice, setEthPrice] = React.useState<number | null>(null);
@@ -57,7 +56,7 @@ export default function WalletMenu({ isOpen, onClose }: WalletMenuProps) {
       setEthBalance(formatEther(wei));
 
       const arr = lrData as readonly unknown[];
-      const answerBig = arr[1] as bigint; // int256 answer
+      const answerBig = arr[1] as bigint;
       const price = Number(answerBig) / 10 ** Number(decimals);
       setEthPrice(price);
     } catch (err) {

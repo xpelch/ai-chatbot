@@ -10,10 +10,19 @@ export default function TypingIndicator() {
         </div>
       </div>
       <div className="col-start-2 col-end-3">
-        <div className="flex h-10 items-end gap-1 pb-1 text-white/60">
-          <span className="h-2 w-2 animate-bounce rounded-full bg-white/50 [animation-delay:-0.2s]" />
-          <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" />
-          <span className="h-2 w-2 animate-bounce rounded-full bg-white/50 [animation-delay:0.2s]" />
+        <div className="flex h-10 items-end gap-1.5 pb-1">
+          <span
+            aria-hidden
+            className="h-3 w-3 -rotate-6 animate-bounce rounded-[4px] bg-gradient-to-br from-orange-500/90 to-orange-400/60 shadow-sm ring-1 ring-orange-400/30 [animation-delay:-0.2s]"
+          />
+          <span
+            aria-hidden
+            className="h-3 w-3 animate-bounce rounded-[4px] bg-gradient-to-br from-orange-500/95 to-orange-400/70 shadow-sm ring-1 ring-orange-400/30"
+          />
+          <span
+            aria-hidden
+            className="h-3 w-3 rotate-6 animate-bounce rounded-[4px] bg-gradient-to-br from-orange-500/90 to-orange-400/60 shadow-sm ring-1 ring-orange-400/30 [animation-delay:0.2s]"
+          />
         </div>
       </div>
       <div className="col-start-3 col-end-4" />

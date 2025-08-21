@@ -12,15 +12,16 @@ export type ChatMessage = {
 export const WELCOME_MSG = "Welcome! Connect your wallet and ask me anything.";
 export const NEW_CHAT_MSG = "New chat started. Ask your question.";
 export const AI_ENDPOINT = "/api/ai";
+export const WALLET_SUMMARY_ENDPOINT = "/api/wallet/summary";
 export const REQUEST_TIMEOUT_MS = 20_000;
 export const AVATAR_IMG = "/block_head.png";
 export const USER_AVATARS = ["/habibi_user.png", "/chinese_user.png", "/man_user.png", "/girl_user.png"];
 export const QUICK_PROMPTS: string[] = [
+  "My bags",
+  "Top gainers",
+  "Gas now",
+  "Flip a coin 🎲",
   "help",
-  "time",
-  "Summarize ETH valuation in 3 bullets",
-  "Explain rollups like I'm five",
-  "What's my balance?",
 ];
 
 export function cryptoRandomId() {
@@ -91,30 +92,72 @@ export async function fetchAiStream(
   onChunk: (text: string) => void,
   timeoutMs = REQUEST_TIMEOUT_MS
 ): Promise<void> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const ctrl = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const resetWatchdog = () => {
+    if (timer) clearTimeout(timer);
+    // watchdog: si aucun chunk pendant timeoutMs → abort
+    timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  };
+
+  // Un seul TextDecoder partagé pour gérer les frontières UTF-8
+  const decoder = new TextDecoder();
+
   try {
+    resetWatchdog();
+
     const res = await fetch(`${AI_ENDPOINT}?stream=1`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt }),
-      signal: controller.signal,
+      signal: ctrl.signal,
     });
-    if (!res.ok || !res.body) {
-      // Fallback: consume as text
-      const text = await res.text();
+
+    // Si le serveur renvoie une erreur HTTP, on la propage (utile pour l’UI)
+    if (!res.ok) {
+      // Essaie de lire un message d’erreur si disponible
+      const msg = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status}${msg ? `: ${msg}` : ""}`);
+    }
+
+    // Pas de body → tente fallback texte (certains env désactivent les streams)
+    if (!res.body) {
+      const text = await res.text().catch(() => "");
       if (text) onChunk(text);
       return;
     }
+
     const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      onChunk(decoder.decode(value, { stream: true }));
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        // Reset du watchdog à chaque chunk reçu
+        resetWatchdog();
+
+        if (value && value.byteLength > 0) {
+          // decode streamé pour gérer les coupures multi-octets
+          const chunk = decoder.decode(value, { stream: true });
+          if (chunk) onChunk(chunk);
+        }
+      }
+
+      // Flush final pour tout octet UTF-8 restant dans le buffer
+      const tail = decoder.decode();
+      if (tail) onChunk(tail);
+    } finally {
+      reader.releaseLock?.();
     }
+  } catch (err) {
+    // Si c’est un abort (timeout watchdog ou externe), surface un message explicite
+    if (isAbortError(err)) {
+      throw new Error("Request aborted (timeout or cancellation).");
+    }
+    throw err; // propage l’erreur pour que l’appelant gère le fallback
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
   }
 }
 

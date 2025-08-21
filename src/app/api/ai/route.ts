@@ -1,7 +1,41 @@
+// app/api/ai/route.ts
 import { NextRequest } from "next/server";
 import OpenAI from "openai";
+import { resolveLocalCommand } from "@/lib/localCommands";
 
 const MODEL_NAME = process.env.AI_MODEL_NAME ?? "gpt-5-nano";
+
+/**
+ * Blockhead persona: witty, hype (sans lourdeur), crypto-native.
+ * Règles: concis, actionnable, un peu d'humour, pas de terminal/CLI vibe.
+ */
+const SYSTEM_PROMPT = `
+Your name is Blockhead 🟧.
+You are a witty, high-energy degen sidekick for on-chain topics (token launches, AMMs, DeFi, Base, EVM).
+Tone: playful and sharp, never cringe, never insulting, no profanity. Keep it friendly and fun.
+Format with Markdown (and simple HTML if needed: b, i, br, code, pre, ul, ol, li, a). No images.
+Style:
+- Open with a crisp one-liner hook when it helps.
+- Use tight bullets. 1–3 short paragraphs max before bullets.
+- Always favor numbers, steps, equations, or code when asked.
+- Emojis: sparingly (🔥 🎲 🧠 🟧). Zero emoji spam.
+- No terminal/CLI framing; you're a chat buddy, not a shell.
+
+Domain behavior:
+- Be precise about on-chain mechanics (AMM math, fees, slippage, LP/IL, tokenomics).
+- If you estimate, state assumptions briefly.
+- Never claim to send transactions or access wallets/balances.
+- Add a tiny disclaimer “Not financial advice.” on speculative calls.
+
+Boundaries:
+- No harassment, no illegal guidance, no personal data inference.
+- If a request is unsafe, refuse briefly and offer a safe angle.
+
+Answer quality rules:
+- Prefer concrete next actions over theory.
+- Keep outputs compact; collapse fluff.
+- Use fenced code blocks for code.
+`.trim();
 
 function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -30,22 +64,20 @@ export async function POST(req: NextRequest) {
 
     if (!prompt.trim()) {
       if (wantsStream) {
-        return new Response("Please enter a command or question.", {
+        return new Response("Say something and I'll make it spicy (but useful).", {
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
       }
-      return Response.json({ reply: "Please enter a command or question." });
+      return Response.json({ reply: "Say something and I'll make it spicy (but useful)." });
     }
 
-    // Simple local commands for convenience
-    const local = tryLocalCommand(prompt);
-    if (local) {
+    // Local commands (sync/async)
+    const maybe = await resolveLocalCommand(prompt);
+    if (maybe) {
       if (wantsStream) {
-        return new Response(local, {
-          headers: { "Content-Type": "text/plain; charset=utf-8" },
-        });
+        return new Response(maybe, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
       }
-      return Response.json({ reply: local });
+      return Response.json({ reply: maybe });
     }
 
     const client = getOpenAIClient();
@@ -56,11 +88,7 @@ export async function POST(req: NextRequest) {
           model: MODEL_NAME,
           stream: true,
           messages: [
-            {
-              role: "system",
-              content:
-                "You are a helpful AI assistant for a terminal-style chat. You may use Markdown and simple HTML (b, i, br, code, pre, ul, ol, li, a) for formatting. Use hyphen bullets for lists, fenced code blocks for code, and short paragraphs. Avoid images and complex HTML. Keep answers concise.",
-            },
+            { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: prompt },
           ],
         });
@@ -69,7 +97,9 @@ export async function POST(req: NextRequest) {
         const body = new ReadableStream<Uint8Array>({
           async start(controller) {
             try {
-              for await (const chunk of stream as AsyncIterable<{ choices?: Array<{ delta?: { content?: string } }> }>) {
+              for await (const chunk of stream as AsyncIterable<{
+                choices?: Array<{ delta?: { content?: string } }>;
+              }>) {
                 const piece =
                   (chunk?.choices?.[0]?.delta?.content as string | undefined) ?? "";
                 if (piece) controller.enqueue(encoder.encode(piece));
@@ -86,20 +116,17 @@ export async function POST(req: NextRequest) {
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
       } catch {
-        // Fallback: do a one-shot completion and stream it as a single chunk
+        // Fallback: one-shot completion streamed as single chunk
         try {
           const completion = await client.chat.completions.create({
             model: MODEL_NAME,
             messages: [
-              {
-                role: "system",
-                content:
-                  "You are a helpful AI assistant for a terminal-style chat. You may use Markdown and simple HTML (b, i, br, code, pre, ul, ol, li, a) for formatting. Use hyphen bullets for lists, fenced code blocks for code, and short paragraphs. Avoid images and complex HTML. Keep answers concise.",
-              },
+              { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content: prompt },
             ],
           });
-          const reply = completion.choices?.[0]?.message?.content?.trim() ?? "(no reply)";
+          const reply =
+            completion.choices?.[0]?.message?.content?.trim() ?? "(no reply)";
           return new Response(reply, {
             headers: { "Content-Type": "text/plain; charset=utf-8" },
           });
@@ -107,8 +134,7 @@ export async function POST(req: NextRequest) {
           // Last fallback: Responses API one-shot
           const completion = await client.responses.create({
             model: MODEL_NAME,
-            instructions:
-              "You are a helpful AI assistant for a terminal-style chat. You may use Markdown and simple HTML (b, i, br, code, pre, ul, ol, li, a) for formatting. Use hyphen bullets for lists, fenced code blocks for code, and short paragraphs. Avoid images and complex HTML. Keep answers concise.",
+            instructions: SYSTEM_PROMPT,
             input: prompt,
           });
           const outputText = (completion as { output_text?: unknown }).output_text;
@@ -128,24 +154,19 @@ export async function POST(req: NextRequest) {
       const completion = await client.chat.completions.create({
         model: MODEL_NAME,
         messages: [
-          {
-            role: "system",
-            content:
-              "You are a helpful AI assistant for a terminal-style chat. You may use Markdown and simple HTML (b, i, br, code, pre, ul, ol, li, a) for formatting. Use hyphen bullets for lists, fenced code blocks for code, and short paragraphs. Avoid images and complex HTML. Keep answers concise.",
-          },
+          { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: prompt },
         ],
       });
       const reply = completion.choices?.[0]?.message?.content?.trim() ?? "(no reply)";
       return Response.json({ reply });
     } catch {
-      // Fallback to Responses API for providers that don't support Chat Completions
+      // Fallback to Responses API (providers sans Chat Completions)
       const completion = await client.responses.create({
         model: MODEL_NAME,
-        instructions: "Your name is Blockhead. You are a helpful AI assistant chatbot for onchain data. Always format lists using Markdown or simple HTML (b, i, br, code, pre, ul, ol, li, a). Do not strip leading hyphens. Keep answers concise.",
+        instructions: SYSTEM_PROMPT,
         input: prompt,
       });
-      // Prefer SDK convenience accessor if present; otherwise extract from output array
       const outputText = (completion as { output_text?: unknown }).output_text;
       const reply =
         typeof outputText === "string" && outputText.trim().length > 0
@@ -172,24 +193,6 @@ export async function GET() {
   // Simple healthcheck; returns whether server can see basic env
   const hasKey = Boolean(process.env.OPENAI_API_KEY);
   return Response.json({ ok: true, model: MODEL_NAME, hasKey });
-}
-
-function tryLocalCommand(prompt: string): string | null {
-  const lower = prompt.trim().toLowerCase();
-  if (lower === "help") {
-    return [
-      "Available commands (Markdown/HTML supported):",
-      "",
-      "- help: Show this help",
-      "- echo <text>: Echo back text",
-      "- time: Show server time",
-      "- You can format your messages using Markdown and simple HTML (b, i, br, code, pre, ul, ol, li, a)",
-      "- Otherwise, the message is sent to the AI model (" + MODEL_NAME + ")",
-    ].join("\n");
-  }
-  if (lower.startsWith("echo ")) return prompt.slice(5);
-  if (lower === "time") return new Date().toISOString();
-  return null;
 }
 
 function errorHint(message: string): string | undefined {
@@ -222,5 +225,3 @@ function extractResponseText(response: unknown): string {
   }
   return "(no reply)";
 }
-
-

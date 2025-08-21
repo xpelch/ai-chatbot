@@ -12,6 +12,7 @@ import Bubble from "./Bubble";
 import TypingIndicator from "./TypingIndicator";
 import Composer from "./Composer";
 import WalletMenu from "../WalletMenu";
+import { buildWalletSummaryCard } from "./WalletSummaryCard";
 import {
   ChatMessage,
   ChatRole,
@@ -19,6 +20,7 @@ import {
   NEW_CHAT_MSG,
   QUICK_PROMPTS,
   REQUEST_TIMEOUT_MS,
+  WALLET_SUMMARY_ENDPOINT,
   cryptoRandomId,
   getRandomUserAvatar,
   shortAddress,
@@ -60,6 +62,49 @@ export default function AiTerminal() {
     async (raw: string) => {
       const prompt = raw.trim();
       if (!prompt) return;
+      // Local client shortcut: My bags → trigger ETH balance summary prompt
+      if (prompt.toLowerCase() === "my bags") {
+        const addr = user?.wallet?.address;
+        if (!addr) {
+          addAssistant("Connect a wallet first, then hit My bags.");
+          return;
+        }
+        addUser(prompt);
+        setInput("");
+        setBusy(true);
+        try {
+          const res = await fetch(WALLET_SUMMARY_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ address: addr }),
+          });
+          const data = (await res.json()) as {
+            error?: string;
+            chain?: string;
+            address?: string;
+            eth?: { balance: number; priceUsd: number; valueUsd: number };
+            ts?: number;
+          };
+          if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+          const bal = data.eth?.balance ?? 0;
+          const px = data.eth?.priceUsd ?? 0;
+          const val = data.eth?.valueUsd ?? 0;
+          addAssistant(
+            buildWalletSummaryCard({
+              address: addr,
+              shortAddress: shortAddress(addr),
+              balanceEth: bal,
+              priceUsd: px,
+              valueUsd: val,
+            })
+          );
+        } catch (e) {
+          addError(errorMessage(e));
+        } finally {
+          setBusy(false);
+        }
+        return;
+      }
       addUser(prompt);
       setInput("");
       setBusy(true);
@@ -105,7 +150,7 @@ export default function AiTerminal() {
         streamingIdRef.current = null;
       }
     },
-    [addAssistant, addError, addUser]
+    [addAssistant, addError, addUser, user?.wallet?.address]
   );
 
   const clearChat = React.useCallback(() => {
