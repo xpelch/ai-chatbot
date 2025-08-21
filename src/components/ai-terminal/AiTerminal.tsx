@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { usePrivy, useLogin, useLogout } from "@privy-io/react-auth";
+import { usePrivy, useLogin } from "@privy-io/react-auth";
 import { BiSolidDockRight, BiSolidDockTop, BiChevronDown } from "react-icons/bi";
 import Image from "next/image";
 
@@ -11,6 +11,7 @@ import QuickActions from "./QuickActions";
 import Bubble from "./Bubble";
 import TypingIndicator from "./TypingIndicator";
 import Composer from "./Composer";
+import WalletMenu from "../WalletMenu";
 import {
   ChatMessage,
   ChatRole,
@@ -29,7 +30,6 @@ import {
 export default function AiTerminal() {
   const { ready, authenticated, user } = usePrivy();
   const { login } = useLogin();
-  const { logout } = useLogout();
 
   const [input, setInput] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -40,6 +40,7 @@ export default function AiTerminal() {
   const [firstChunkReceived, setFirstChunkReceived] = React.useState(false);
   const streamingIdRef = React.useRef<string | null>(null);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [walletMenuOpen, setWalletMenuOpen] = React.useState(false);
 
   const userAvatar = React.useMemo(() => getRandomUserAvatar(), []);
   const chatRef = React.useRef<HTMLDivElement>(null);
@@ -121,9 +122,9 @@ export default function AiTerminal() {
   const getDockStyles = () => {
     switch (dockPosition) {
       case "right":
-        return "md:fixed md:right-4 md:top-4 md:bottom-4 md:w-[30%] z-50 md:flex md:flex-col transition-all duration-300 ease-in-out";
+        return "fixed right-4 top-4 bottom-4 w-[30%] z-50 flex flex-col transition-all duration-300 ease-in-out";
       default:
-        return "md:mx-auto md:w-full md:max-w-6xl md:px-4 md:py-4 md:h-[calc(100vh-32px)] transition-all duration-300 ease-in-out";
+        return "mx-auto w-full max-w-6xl px-4 py-4 h-[calc(100vh-32px)] transition-all duration-300 ease-in-out";
     }
   };
 
@@ -166,7 +167,8 @@ export default function AiTerminal() {
             authenticated={!!authenticated}
             addr={shortAddr}
             onLogin={() => login()}
-            onLogout={logout}
+            onWalletMenu={() => setWalletMenuOpen(true)}
+            walletMenuOpen={walletMenuOpen}
           />
 
           <div
@@ -223,6 +225,12 @@ export default function AiTerminal() {
           <Image src="/block_head.png" alt="Blockhead" width={32} height={32} />
         </button>
       </div>
+
+      {/* Wallet Menu Modal */}
+      <WalletMenu 
+        isOpen={walletMenuOpen} 
+        onClose={() => setWalletMenuOpen(false)} 
+      />
     </div>
   );
 }

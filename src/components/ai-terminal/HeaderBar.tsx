@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { BiPowerOff } from "react-icons/bi";
+import { BiWallet } from "react-icons/bi";
 import { AVATAR_IMG } from "./lib";
 
 export default function HeaderBar({
@@ -7,13 +7,15 @@ export default function HeaderBar({
   authenticated,
   addr,
   onLogin,
-  onLogout,
+  onWalletMenu,
+  walletMenuOpen,
 }: {
   ready: boolean;
   authenticated: boolean;
   addr?: string;
   onLogin: () => void;
-  onLogout: () => void;
+  onWalletMenu: () => void;
+  walletMenuOpen?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 px-5 py-4">
@@ -35,11 +37,11 @@ export default function HeaderBar({
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline text-sm text-white/70 truncate max-w-24">{addr}</span>
             <button
-              onClick={onLogout}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/90 transition hover:bg-white/10"
-              title="Logout"
+              onClick={onWalletMenu}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/90 transition hover:bg-white/10 ${walletMenuOpen ? "ring-2 ring-orange-500" : ""}`}
+              title="Wallet"
             >
-              <BiPowerOff className="h-4 w-4" />
+              <BiWallet className="h-5 w-5" />
             </button>
           </div>
         ) : (
