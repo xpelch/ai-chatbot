@@ -25,8 +25,8 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
     : "bg-white/10 text-white ring-1 ring-white/20";
 
   const grid = isUser
-    ? "grid grid-cols-[1fr_56px] items-end gap-3"
-    : "grid grid-cols-[56px_1fr] items-end gap-3";
+    ? "grid grid-cols-[1fr_40px] items-end gap-3"
+    : "grid grid-cols-[40px_1fr] items-end gap-3";
 
   // Detect special content cards
   const wallet = !isUser && !isError && !isSystem ? parseWalletSummary(content) : null;
@@ -39,9 +39,9 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
       <div className={grid}>
         {!isUser ? (
           <div className="col-start-1 col-end-2">
-            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-3xl ring-1 ring-white/15">
-              <Image src={AVATAR_IMG} alt="AI Agent" width={56} height={56} className="object-cover" />
-            </div>
+                         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl ring-1 ring-white/15">
+               <Image src={AVATAR_IMG} alt="AI Agent" width={40} height={40} className="object-cover" />
+             </div>
           </div>
         ) : null}
 
@@ -134,9 +134,9 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
 
         {isUser ? (
           <div className="col-start-2 col-end-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-white/10 ring-1 ring-white/15 overflow-hidden">
-              <Image src={userAvatar} alt="User" width={48} height={48} className="object-cover" />
-            </div>
+                         <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15 overflow-hidden">
+               <Image src={userAvatar} alt="User" width={32} height={32} className="object-cover" />
+             </div>
           </div>
         ) : null}
       </div>
@@ -148,8 +148,8 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
     <div className={grid}>
       {!isUser ? (
         <div className="col-start-1 col-end-2">
-          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-3xl ring-1 ring-white/15">
-            <Image src={AVATAR_IMG} alt="AI Agent" width={56} height={56} className="object-cover" />
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl ring-1 ring-white/15">
+            <Image src={AVATAR_IMG} alt="AI Agent" width={40} height={40} className="object-cover" />
           </div>
         </div>
       ) : null}
@@ -173,8 +173,8 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
 
       {isUser ? (
         <div className="col-start-2 col-end-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-white/10 ring-1 ring-white/15 overflow-hidden">
-            <Image src={userAvatar} alt="User" width={48} height={48} className="object-cover" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15 overflow-hidden">
+            <Image src={userAvatar} alt="User" width={32} height={32} className="object-cover" />
           </div>
         </div>
       ) : null}

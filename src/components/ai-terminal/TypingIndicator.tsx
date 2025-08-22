@@ -3,10 +3,10 @@ import { AVATAR_IMG } from "./lib";
 
 export default function TypingIndicator() {
   return (
-    <div className="grid grid-cols-[56px_1fr_56px] items-end gap-3">
+    <div className="grid grid-cols-[40px_1fr_40px] items-end gap-3">
       <div className="col-start-1 col-end-2">
-                   <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-3xl ring-1 ring-white/15">
-          <Image src={AVATAR_IMG} alt="AI Agent" width={56} height={56} className="object-cover" />
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl ring-1 ring-white/15">
+          <Image src={AVATAR_IMG} alt="AI Agent" width={40} height={40} className="object-cover" />
         </div>
       </div>
       <div className="col-start-2 col-end-3">

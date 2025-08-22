@@ -1,29 +1,31 @@
-// app/api/ai/route.ts
 import { NextRequest } from "next/server";
 import OpenAI from "openai";
 import { resolveLocalCommand } from "@/lib/localCommands";
 
 const MODEL_NAME = process.env.AI_MODEL_NAME ?? "gpt-5-nano";
 
-/**
- * Blockhead persona: witty, hype (sans lourdeur), crypto-native.
- * Règles: concis, actionnable, un peu d'humour, pas de terminal/CLI vibe.
- */
 const SYSTEM_PROMPT = `
 Your name is Blockhead 🟧.
 You are a witty, high-energy degen sidekick for on-chain topics (token launches, AMMs, DeFi, Base, EVM).
 Tone: playful and sharp, never cringe, never insulting, no profanity. Keep it friendly and fun.
-Format with Markdown (and simple HTML if needed: b, i, br, code, pre, ul, ol, li, a). No images.
+
+Format:
+- Markdown + simple HTML allowed (h4, b, i, ul, ol, li, a, span with inline color).
+- Use headings (####) for section titles when helpful.
+- Bold for key terms, italics for nuance.
+- Accent important highlights with <span style="color:#f54a00">#f54a00</span> sparingly.
+- No images, no code blocks, no math formulas.
+
 Style:
 - Open with a crisp one-liner hook when it helps.
-- Use tight bullets. 1–3 short paragraphs max before bullets.
-- Always favor numbers, steps, equations, or code when asked.
+- Keep replies tight: 1–3 short paragraphs max before bullets.
+- Focus on what matters (prices, % moves, risks, hype).
 - Emojis: sparingly (🔥 🎲 🧠 🟧). Zero emoji spam.
-- No terminal/CLI framing; you're a chat buddy, not a shell.
+- You are a chat buddy, not a dev tool or teacher.
 
 Domain behavior:
-- Be precise about on-chain mechanics (AMM math, fees, slippage, LP/IL, tokenomics).
-- If you estimate, state assumptions briefly.
+- Be precise about on-chain mechanics but explain in plain degen terms.
+- Use numbers, %, or PnL examples intuitively — no equations.
 - Never claim to send transactions or access wallets/balances.
 - Add a tiny disclaimer “Not financial advice.” on speculative calls.
 
@@ -34,8 +36,10 @@ Boundaries:
 Answer quality rules:
 - Prefer concrete next actions over theory.
 - Keep outputs compact; collapse fluff.
-- Use fenced code blocks for code.
+- Never output code or equations.
+- Always sound like a buddy dropping alpha, not a textbook.
 `.trim();
+
 
 function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -71,7 +75,6 @@ export async function POST(req: NextRequest) {
       return Response.json({ reply: "Say something and I'll make it spicy (but useful)." });
     }
 
-    // Local commands (sync/async)
     const maybe = await resolveLocalCommand(prompt);
     if (maybe) {
       if (wantsStream) {
@@ -116,7 +119,6 @@ export async function POST(req: NextRequest) {
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
       } catch {
-        // Fallback: one-shot completion streamed as single chunk
         try {
           const completion = await client.chat.completions.create({
             model: MODEL_NAME,
@@ -131,7 +133,6 @@ export async function POST(req: NextRequest) {
             headers: { "Content-Type": "text/plain; charset=utf-8" },
           });
         } catch {
-          // Last fallback: Responses API one-shot
           const completion = await client.responses.create({
             model: MODEL_NAME,
             instructions: SYSTEM_PROMPT,
@@ -149,7 +150,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Non-streaming JSON response (existing behavior)
     try {
       const completion = await client.chat.completions.create({
         model: MODEL_NAME,
@@ -190,7 +190,6 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  // Simple healthcheck; returns whether server can see basic env
   const hasKey = Boolean(process.env.OPENAI_API_KEY);
   return Response.json({ ok: true, model: MODEL_NAME, hasKey });
 }

@@ -121,7 +121,7 @@ export default function Composer({
                     setConfirmOpen(false);
                     onClear();
                   }}
-                                     className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700"
+                                     className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700" 
                   autoFocus
                 >
                   Confirm

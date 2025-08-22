@@ -2,7 +2,7 @@
 
 import React from "react";
 import { usePrivy, useLogin } from "@privy-io/react-auth";
-import { AnimatePresence, motion, useReducedMotion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { BiSolidDockRight, BiSolidDockTop } from "react-icons/bi";
 import Image from "next/image";
 
@@ -33,8 +33,6 @@ import {
 export default function AiTerminal() {
   const { ready, authenticated, user } = usePrivy();
   const { login } = useLogin();
-
-  const prefersReduceMotion = useReducedMotion();
 
   const [input, setInput] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -101,9 +99,34 @@ export default function AiTerminal() {
   const userAvatar = React.useMemo(() => getRandomUserAvatar(), []);
   const chatRef = React.useRef<HTMLDivElement>(null);
 
+  // Auto-scroll to bottom when user sends message, AI starts typing, or finishes
   React.useEffect(() => {
-    chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
+    const scrollToBottom = () => {
+      if (chatRef.current) {
+        chatRef.current.scrollTo({ 
+          top: chatRef.current.scrollHeight, 
+          behavior: "smooth" 
+        });
+      }
+    };
+    
+    // Only scroll for user messages (when not busy) or when typing starts
+    if (!busy) {
+      scrollToBottom();
+      const timeoutId = setTimeout(scrollToBottom, 100);
+      return () => clearTimeout(timeoutId);
+    }
   }, [messages, busy]);
+
+  // Scroll when typing indicator appears (when busy becomes true and firstChunkReceived is false)
+  React.useEffect(() => {
+    if (busy && !firstChunkReceived && chatRef.current) {
+      chatRef.current.scrollTo({ 
+        top: chatRef.current.scrollHeight, 
+        behavior: "smooth" 
+      });
+    }
+  }, [busy, firstChunkReceived]);
 
   // Lock background scroll when sheet open
   React.useEffect(() => {
@@ -192,29 +215,6 @@ export default function AiTerminal() {
 
   const shortAddr = shortAddress(user?.wallet?.address);
   const canInteract = ready && authenticated && !busy;
-
-
-
-
-
-  // Motion variants (bottom sheet)
-  const backdrop = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: prefersReduceMotion ? 0 : 0.18 } },
-    exit: { opacity: 0, transition: { duration: prefersReduceMotion ? 0 : 0.15 } },
-  } as const;
-
-  const sheet = {
-    hidden: { y: "100%", scale: 0.98, opacity: 0.8 },
-    visible: {
-      y: 0, scale: 1, opacity: 1,
-      transition: prefersReduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 520, damping: 42, mass: 0.9 }
-    },
-    exit: {
-      y: "100%", scale: 0.98, opacity: 0.9,
-      transition: prefersReduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 420, damping: 38, mass: 0.9 }
-    },
-  } as const;
 
   return (
     <div className="relative min-h-screen bg-zinc-900 text-zinc-100 pb-16 md:pb-0">
@@ -375,19 +375,25 @@ export default function AiTerminal() {
       </AnimatePresence>
 
       {/* FAB */}
-      <motion.div
-        className="fixed bottom-4 right-4 z-50 md:hidden"
-        animate={{ rotate: mobileOpen ? 12 : 0, scale: mobileOpen ? 0.9 : 1, opacity: mobileOpen ? 0 : 1 }}
-        transition={{ duration: 0.2 }}
-      >
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur hover:bg-white/15 transition"
-          title="Open chat"
-        >
-          <Image src="/block_head.png" alt="Blockhead" width={32} height={32} />
-        </button>
-      </motion.div>
+      <AnimatePresence>
+        {!mobileOpen && (
+          <motion.div
+            className="fixed bottom-4 right-4 z-50 md:hidden"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.18 }}
+          >
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur hover:bg-white/15 transition"
+              title="Open chat"
+            >
+              <Image src="/block_head.png" alt="Blockhead" width={32} height={32} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Dock toggle (desktop) */}
       {dockPosition === "center" && (
