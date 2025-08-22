@@ -178,9 +178,7 @@ export default function AiTerminal() {
   const shortAddr = shortAddress(user?.wallet?.address);
   const canInteract = ready && authenticated && !busy;
 
-  const toggleDock = React.useCallback(() => {
-    setDockPosition((prev) => (prev === "center" ? "right" : "center"));
-  }, []);
+
 
 
 
