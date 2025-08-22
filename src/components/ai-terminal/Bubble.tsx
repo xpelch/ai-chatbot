@@ -106,7 +106,7 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
                 <div>
                   <p className="text-zinc-400 text-xs">{gas.low.label}</p>
                   <p className="text-sm font-semibold text-green-400 flex items-center justify-center gap-1">
-                    <HiLightningBolt className="w-3 h-3 -mt-1" />
+                    <HiLightningBolt className="w-3 h-3 -mt-0.7" />
                     {gas.low.maxFeeGwei.toFixed(1)} gwei
                   </p>
                   <p className="text-xs text-zinc-500">tip {gas.low.tipGwei.toFixed(1)} gwei</p>
@@ -114,7 +114,7 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
                 <div>
                   <p className="text-zinc-400 text-xs">{gas.standard.label}</p>
                   <p className="text-sm font-semibold text-orange-400 flex items-center justify-center gap-1">
-                    <HiLightningBolt className="w-3 h-3 -mt-1" />
+                    <HiLightningBolt className="w-3 h-3 -mt-0.7" />
                     {gas.standard.maxFeeGwei.toFixed(1)} gwei
                   </p>
                   <p className="text-xs text-zinc-500">tip {gas.standard.tipGwei.toFixed(1)} gwei</p>
@@ -122,7 +122,7 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
                 <div>
                   <p className="text-zinc-400 text-xs">{gas.fast.label}</p>
                   <p className="text-sm font-semibold text-red-400 flex items-center justify-center gap-1">
-                    <HiLightningBolt className="w-3 h-3 -mt-1" />
+                    <HiLightningBolt className="w-3 h-3 -mt-0.7" />
                     {gas.fast.maxFeeGwei.toFixed(1)} gwei
                   </p>
                   <p className="text-xs text-zinc-500">tip {gas.fast.tipGwei.toFixed(1)} gwei</p>

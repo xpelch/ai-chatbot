@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@privy-io/react-auth": "^2.21.4",
+    "framer-motion": "^12.23.12",
     "highlight.js": "^11.11.1",
     "isomorphic-dompurify": "^2.26.0",
     "next": "15.5.0",

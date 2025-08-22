@@ -2,7 +2,8 @@
 
 import React from "react";
 import { usePrivy, useLogin } from "@privy-io/react-auth";
-import { BiSolidDockRight, BiSolidDockTop, BiChevronDown } from "react-icons/bi";
+import { AnimatePresence, motion, useReducedMotion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { BiSolidDockRight, BiSolidDockTop } from "react-icons/bi";
 import Image from "next/image";
 
 import GlassCard from "./GlassCard";
@@ -33,6 +34,8 @@ export default function AiTerminal() {
   const { ready, authenticated, user } = usePrivy();
   const { login } = useLogin();
 
+  const prefersReduceMotion = useReducedMotion();
+
   const [input, setInput] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [dockPosition, setDockPosition] = React.useState<"center" | "right">("center");
@@ -44,12 +47,57 @@ export default function AiTerminal() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = React.useState(false);
 
+  // ===== add these hooks near the top (keep your imports) =====
+  const [vw, setVw] = React.useState<number>(
+    typeof window === "undefined" ? 1200 : window.innerWidth
+  );
+  React.useEffect(() => {
+    const onR = () => setVw(window.innerWidth);
+    window.addEventListener("resize", onR);
+    return () => window.removeEventListener("resize", onR);
+  }, []);
+
+  const centerW = Math.min(vw * 0.92, 1120); // center width
+  const dockW   = Math.min(vw * 0.30, 520);  // dock width (cap)
+
+  // progress value t: 0 = center, 1 = right-docked
+  const tRaw = useMotionValue(dockPosition === "center" ? 0 : 1);
+  const t = useSpring(tRaw, { stiffness: 520, damping: 42, mass: 0.9 });
+
+  React.useEffect(() => {
+    t.set(dockPosition === "center" ? 0 : 1); // animate to target
+  }, [dockPosition, t]);
+
+  // derive width from t
+  const w = useTransform(t, (v) => centerW + (dockW - centerW) * v);
+
+  // derive translateX from t **and** the instantaneous width
+  // anchor at left:50% so x positions are absolute in px
+  const x = useTransform(t, (v) => {
+    const wv = centerW + (dockW - centerW) * v;        // same as w but local
+    const xCenter = -wv / 2;                           // to be centered at left:50%
+    const xRight  = vw / 2 - 16 - wv;                  // align right with 16px margin
+    return xCenter + (xRight - xCenter) * v;           // linear blend
+  });
+
+  // border radius along the same timeline
+  const radius = useTransform(t, [0, 1], [24, 20]);
+
   const userAvatar = React.useMemo(() => getRandomUserAvatar(), []);
   const chatRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, busy]);
+
+  // Lock background scroll when sheet open
+  React.useEffect(() => {
+    if (mobileOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [mobileOpen]);
 
   const addMessage = React.useCallback((role: ChatRole, content: string) => {
     setMessages((prev) => [...prev, { id: cryptoRandomId(), role, content }]);
@@ -62,53 +110,32 @@ export default function AiTerminal() {
     async (raw: string) => {
       const prompt = raw.trim();
       if (!prompt) return;
-      // Local client shortcut: My bags → trigger ETH balance summary prompt
+
       if (prompt.toLowerCase() === "my bags") {
         const addr = user?.wallet?.address;
-        if (!addr) {
-          addAssistant("Connect a wallet first, then hit My bags.");
-          return;
-        }
-        addUser(prompt);
-        setInput("");
-        setBusy(true);
+        if (!addr) { addAssistant("Connect a wallet first, then hit My bags."); return; }
+        addUser(prompt); setInput(""); setBusy(true);
         try {
           const res = await fetch(WALLET_SUMMARY_ENDPOINT, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ address: addr }),
           });
           const data = (await res.json()) as {
-            error?: string;
-            chain?: string;
-            address?: string;
-            eth?: { balance: number; priceUsd: number; valueUsd: number };
-            ts?: number;
+            error?: string; chain?: string; address?: string;
+            eth?: { balance: number; priceUsd: number; valueUsd: number }; ts?: number;
           };
           if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
-          const bal = data.eth?.balance ?? 0;
-          const px = data.eth?.priceUsd ?? 0;
-          const val = data.eth?.valueUsd ?? 0;
-          addAssistant(
-            buildWalletSummaryCard({
-              address: addr,
-              shortAddress: shortAddress(addr),
-              balanceEth: bal,
-              priceUsd: px,
-              valueUsd: val,
-            })
-          );
-        } catch (e) {
-          addError(errorMessage(e));
-        } finally {
-          setBusy(false);
-        }
+          const bal = data.eth?.balance ?? 0; const px = data.eth?.priceUsd ?? 0; const val = data.eth?.valueUsd ?? 0;
+          addAssistant(buildWalletSummaryCard({
+            address: addr, shortAddress: shortAddress(addr),
+            balanceEth: bal, priceUsd: px, valueUsd: val,
+          }));
+        } catch (e) { addError(errorMessage(e)); }
+        finally { setBusy(false); }
         return;
       }
-      addUser(prompt);
-      setInput("");
-      setBusy(true);
-      setFirstChunkReceived(false);
+
+      addUser(prompt); setInput(""); setBusy(true); setFirstChunkReceived(false);
       streamingIdRef.current = null;
 
       try {
@@ -134,20 +161,11 @@ export default function AiTerminal() {
         try {
           const reply = await fetchAiReply(prompt, REQUEST_TIMEOUT_MS);
           const currentId = streamingIdRef.current;
-          if (currentId === null) {
-            addAssistant(reply);
-          } else {
-            setMessages((prev) =>
-              prev.map((m) => (m.id === currentId ? { ...m, content: reply } : m))
-            );
-          }
-        } catch (e) {
-          addError(errorMessage(e));
-        }
+          if (currentId === null) addAssistant(reply);
+          else setMessages((prev) => prev.map((m) => (m.id === currentId ? { ...m, content: reply } : m)));
+        } catch (e) { addError(errorMessage(e)); }
       } finally {
-        setBusy(false);
-        setFirstChunkReceived(false);
-        streamingIdRef.current = null;
+        setBusy(false); setFirstChunkReceived(false); streamingIdRef.current = null;
       }
     },
     [addAssistant, addError, addUser, user?.wallet?.address]
@@ -164,49 +182,61 @@ export default function AiTerminal() {
     setDockPosition((prev) => (prev === "center" ? "right" : "center"));
   }, []);
 
-  const getDockStyles = () => {
-    switch (dockPosition) {
-      case "right":
-        return "fixed right-4 top-4 bottom-4 w-[30%] z-50 flex flex-col transition-all duration-300 ease-in-out";
-      default:
-        return "mx-auto w-full max-w-6xl px-4 py-4 h-[calc(100vh-32px)] transition-all duration-300 ease-in-out";
-    }
-  };
 
-  const mobileMainClass = `${
-    mobileOpen
-      ? "fixed inset-0 z-40 w-full h-full p-2 md:static md:z-auto md:inset-auto md:w-auto md:h-auto md:p-0 md:block"
-      : "hidden md:block"
-  }`;
+
+  // Motion variants (bottom sheet)
+  const backdrop = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: prefersReduceMotion ? 0 : 0.18 } },
+    exit: { opacity: 0, transition: { duration: prefersReduceMotion ? 0 : 0.15 } },
+  } as const;
+
+  const sheet = {
+    hidden: { y: "100%", scale: 0.98, opacity: 0.8 },
+    visible: {
+      y: 0, scale: 1, opacity: 1,
+      transition: prefersReduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 520, damping: 42, mass: 0.9 }
+    },
+    exit: {
+      y: "100%", scale: 0.98, opacity: 0.9,
+      transition: prefersReduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 420, damping: 38, mass: 0.9 }
+    },
+  } as const;
 
   return (
     <div className="relative min-h-screen bg-zinc-900 text-zinc-100 pb-16 md:pb-0">
+      {/* Background */}
       <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden>
         <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
         <div className="absolute inset-0 -z-10 [background:radial-gradient(600px_200px_at_20%_0%,rgba(249,115,22,0.12),transparent),radial-gradient(600px_200px_at_80%_0%,rgba(147,51,234,0.12),transparent)]" />
       </div>
 
-      <main className={`${mobileMainClass} ${getDockStyles()}`}>
-        {mobileOpen && (
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="absolute top-3 left-3 z-50 md:hidden flex h-8 w-8 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15 text-white hover:bg-white/15 transition"
-            aria-label="Close chat"
-            title="Close chat"
-          >
-            <BiChevronDown className="h-5 w-5" />
-          </button>
-        )}
-        {dockPosition !== "center" && (
-          <button
-            onClick={toggleDock}
-            className="absolute -top-2 -left-2 z-10 hidden h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition-colors md:flex"
-            title="Undock"
-          >
-            <BiSolidDockTop className="h-4 w-4" />
-          </button>
-        )}
-        <GlassCard className={`transition-all duration-300 ease-in-out ${dockPosition !== "center" ? "h-full flex flex-col" : "h-full flex flex-col"}`}>
+      {/* ===== Desktop animated dock panel (single timeline for move+resize) ===== */}
+      <motion.div
+        className="hidden md:flex md:flex-col z-40"
+        style={{
+          position: "fixed",
+          top: 16,
+          bottom: 16,
+          left: "50%",           // never flips; we only animate x
+          x,                     // slide
+          width: w,              // resize
+          borderRadius: radius,  // shape
+          willChange: "transform,width,border-radius",
+        }}
+        initial={false}
+      >
+        <GlassCard className="h-full flex flex-col shadow-2xl ring-1 ring-white/10">
+          {dockPosition === "right" && (
+            <button
+              onClick={() => setDockPosition("center")}
+              className="absolute -top-2 -left-2 h-8 w-8 grid place-items-center rounded-full bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition"
+              title="Undock"
+            >
+              <BiSolidDockTop className="h-4 w-4" />
+            </button>
+          )}
+
           <HeaderBar
             ready={ready}
             authenticated={!!authenticated}
@@ -216,13 +246,8 @@ export default function AiTerminal() {
             walletMenuOpen={walletMenuOpen}
           />
 
-          <div
-            ref={chatRef}
-            className={`overflow-y-auto px-5 py-6 flex-1 transition-all duration-300 ease-in-out ${
-              dockPosition === "center" ? "min-h-0" : "min-h-0"
-            }`}
-          >
-            <div className={`flex flex-col gap-6 transition-all duration-300 ease-in-out ${dockPosition === "center" ? "mx-auto max-w-4xl" : ""}`}>
+          <div ref={chatRef} className="overflow-y-auto px-5 py-6 flex-1">
+            <div className={`flex flex-col gap-6 ${dockPosition === "center" ? "mx-auto max-w-4xl" : ""}`}>
               {messages.map((m) => (
                 <Bubble key={m.id} role={m.role} content={m.content} userAvatar={userAvatar} />
               ))}
@@ -230,12 +255,7 @@ export default function AiTerminal() {
             </div>
           </div>
 
-          <QuickActions
-            prompts={QUICK_PROMPTS}
-            disabled={!authenticated || busy}
-            onUsePrompt={submitPrompt}
-          />
-
+          <QuickActions prompts={QUICK_PROMPTS} disabled={!authenticated || busy} onUsePrompt={submitPrompt} />
           <Composer
             value={input}
             disabled={!canInteract}
@@ -246,38 +266,111 @@ export default function AiTerminal() {
             placeholder={authenticated ? "Message Blockhead…" : "Connect wallet to chat"}
           />
         </GlassCard>
-      </main>
+      </motion.div>
 
+      {/* Mobile: bottom sheet with spring + drag to close */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              key="backdrop"
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={backdrop}
+              onClick={() => setMobileOpen(false)}
+            />
+            <motion.main
+              key="sheet"
+              role="dialog"
+              aria-modal="true"
+              className="fixed inset-x-0 bottom-0 z-50 md:hidden"
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={sheet}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.04}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 120 || info.velocity.y > 600) setMobileOpen(false);
+              }}
+            >
+              <div className="mx-auto w-[96vw] max-w-none">
+                <GlassCard className="h-[88vh] flex flex-col rounded-t-3xl shadow-2xl ring-1 ring-white/10">
+                  <div className="flex items-center justify-between px-3 pt-2">
+                    <div className="mx-auto h-1.5 w-12 rounded-full bg-white/15" />
+                  </div>
+                  <HeaderBar
+                    ready={ready}
+                    authenticated={!!authenticated}
+                    addr={shortAddr}
+                    onLogin={() => login()}
+                    onWalletMenu={() => setWalletMenuOpen(true)}
+                    walletMenuOpen={walletMenuOpen}
+                  />
+                  <div ref={chatRef} className="overflow-y-auto px-5 py-6 flex-1">
+                    <div className="flex flex-col gap-6">
+                      {messages.map((m) => (
+                        <Bubble key={m.id} role={m.role} content={m.content} userAvatar={userAvatar} />
+                      ))}
+                      {busy && !firstChunkReceived && <TypingIndicator />}
+                    </div>
+                  </div>
+                  <QuickActions prompts={QUICK_PROMPTS} disabled={!authenticated || busy} onUsePrompt={submitPrompt} />
+                  <Composer
+                    value={input}
+                    disabled={!canInteract}
+                    onChange={setInput}
+                    onSubmit={() => submitPrompt(input)}
+                    onEnterSend={() => submitPrompt(input)}
+                    onClear={clearChat}
+                    placeholder={authenticated ? "Message Blockhead…" : "Connect wallet to chat"}
+                  />
+                </GlassCard>
+              </div>
+            </motion.main>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* FAB */}
+      <motion.div
+        className="fixed bottom-4 right-4 z-50 md:hidden"
+        animate={{ rotate: mobileOpen ? 12 : 0, scale: mobileOpen ? 0.9 : 1, opacity: mobileOpen ? 0 : 1 }}
+        transition={{ duration: 0.2 }}
+      >
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur hover:bg-white/15 transition"
+          title="Open chat"
+        >
+          <Image src="/block_head.png" alt="Blockhead" width={32} height={32} />
+        </button>
+      </motion.div>
+
+      {/* Dock toggle (desktop) */}
       {dockPosition === "center" && (
-        <div className="hidden md:fixed md:bottom-4 md:right-4 md:z-50 md:block">
+        <motion.div
+          className="hidden md:block md:fixed md:bottom-4 md:right-4 md:z-50"
+          initial={false}
+          animate={{ rotate: 0, scale: 1 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.97 }}
+        >
           <button
             onClick={() => setDockPosition("right")}
-            className="hidden h-12 w-12 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition-all duration-200 ease-in-out transform hover:scale-105 md:flex"
+            className="h-12 w-12 grid place-items-center rounded-full bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition"
             title="Dock to right"
           >
             <BiSolidDockRight className="h-5 w-5" />
           </button>
-        </div>
+        </motion.div>
       )}
 
-      {/* Mobile toggle button */}
-      <div className={`fixed bottom-4 right-4 z-50 md:hidden transition-opacity duration-200 ${mobileOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-        <button
-          onClick={() => setMobileOpen((v) => !v)}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur hover:bg-white/15 transition"
-          title={mobileOpen ? "Close chat" : "Open chat"}
-        >
-          <Image src="/block_head.png" alt="Blockhead" width={32} height={32} />
-        </button>
-      </div>
-
-      {/* Wallet Menu Modal */}
-      <WalletMenu 
-        isOpen={walletMenuOpen} 
-        onClose={() => setWalletMenuOpen(false)} 
-      />
+      {/* Wallet Modal */}
+      <WalletMenu isOpen={walletMenuOpen} onClose={() => setWalletMenuOpen(false)} />
     </div>
   );
 }
-
-
