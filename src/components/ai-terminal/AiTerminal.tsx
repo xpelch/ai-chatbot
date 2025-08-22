@@ -51,7 +51,10 @@ export default function AiTerminal() {
   const [vw, setVw] = React.useState<number>(
     typeof window === "undefined" ? 1200 : window.innerWidth
   );
+  const [isClient, setIsClient] = React.useState(false);
+  
   React.useEffect(() => {
+    setIsClient(true);
     const onR = () => setVw(window.innerWidth);
     window.addEventListener("resize", onR);
     return () => window.removeEventListener("resize", onR);
@@ -65,8 +68,10 @@ export default function AiTerminal() {
   const t = useSpring(tRaw, { stiffness: 520, damping: 42, mass: 0.9 });
 
   React.useEffect(() => {
-    t.set(dockPosition === "center" ? 0 : 1); // animate to target
-  }, [dockPosition, t]);
+    if (isClient) {
+      t.set(dockPosition === "center" ? 0 : 1); // animate to target
+    }
+  }, [dockPosition, t, isClient]);
 
   // derive width from t
   const w = useTransform(t, (v) => centerW + (dockW - centerW) * v);
@@ -82,6 +87,16 @@ export default function AiTerminal() {
 
   // border radius along the same timeline
   const radius = useTransform(t, [0, 1], [24, 20]);
+
+  // put these near other hooks (top of component)
+  const sheetY = useMotionValue(0);
+  const backdropOpacity = useTransform(sheetY, [0, 280], [0.60, 0.00]);
+  const sheetRadius = useTransform(sheetY, [0, 180], [24, 32]);
+
+  function shouldClose(offsetY: number, velocityY: number) {
+    // easier to close: small pull OR a quick flick
+    return offsetY > 56 || velocityY > 350 || sheetY.get() > 72;
+  }
 
   const userAvatar = React.useMemo(() => getRandomUserAvatar(), []);
   const chatRef = React.useRef<HTMLDivElement>(null);
@@ -210,20 +225,21 @@ export default function AiTerminal() {
       </div>
 
       {/* ===== Desktop animated dock panel (single timeline for move+resize) ===== */}
-      <motion.div
-        className="hidden md:flex md:flex-col z-40"
-        style={{
-          position: "fixed",
-          top: 16,
-          bottom: 16,
-          left: "50%",           // never flips; we only animate x
-          x,                     // slide
-          width: w,              // resize
-          borderRadius: radius,  // shape
-          willChange: "transform,width,border-radius",
-        }}
-        initial={false}
-      >
+      {isClient && (
+        <motion.div
+          className="hidden md:flex md:flex-col z-40"
+          style={{
+            position: "fixed",
+            top: 16,
+            bottom: 16,
+            left: "50%",           // never flips; we only animate x
+            x,                     // slide
+            width: w,              // resize
+            borderRadius: radius,  // shape
+            willChange: "transform,width,border-radius",
+          }}
+          initial={false}
+        >
         <GlassCard className="h-full flex flex-col shadow-2xl ring-1 ring-white/10">
           {dockPosition === "right" && (
             <button
@@ -265,68 +281,93 @@ export default function AiTerminal() {
           />
         </GlassCard>
       </motion.div>
+      )}
 
       {/* Mobile: bottom sheet with spring + drag to close */}
       <AnimatePresence>
         {mobileOpen && (
           <>
+            {/* Backdrop follows the drag */}
             <motion.div
               key="backdrop"
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              variants={backdrop}
+              className="fixed inset-0 z-40 md:hidden"
+              style={{ backgroundColor: "rgba(0,0,0,1)", opacity: backdropOpacity }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setMobileOpen(false)}
             />
+
+            {/* Bottom sheet */}
             <motion.main
               key="sheet"
               role="dialog"
               aria-modal="true"
-              className="fixed inset-x-0 bottom-0 z-50 md:hidden"
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              variants={sheet}
+              className="fixed inset-x-0 bottom-0 z-50 md:hidden touch-none" // touch-none => easier drag
+              style={{ y: sheetY }}
+              initial={{ y: "100%", scale: 0.98, opacity: 0.9 }}
+              animate={{ y: 0, scale: 1, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0.9 }}
+              transition={{ type: "spring" as const, stiffness: 520, damping: 42, mass: 0.9 }}
               drag="y"
               dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.04}
+              dragElastic={0.22}                 // softer rubber-band
+              dragMomentum={true}
+              onDragStart={() => {
+                // lock internal scroll while dragging the sheet
+                document.body.style.overscrollBehaviorY = "contain";
+              }}
               onDragEnd={(_, info) => {
-                if (info.offset.y > 120 || info.velocity.y > 600) setMobileOpen(false);
+                document.body.style.overscrollBehaviorY = "";
+                if (shouldClose(info.offset.y, info.velocity.y)) setMobileOpen(false);
+                else sheetY.stop(); // snap back by animation above
               }}
             >
-              <div className="mx-auto w-[96vw] max-w-none">
-                <GlassCard className="h-[88vh] flex flex-col rounded-t-3xl shadow-2xl ring-1 ring-white/10">
-                  <div className="flex items-center justify-between px-3 pt-2">
-                    <div className="mx-auto h-1.5 w-12 rounded-full bg-white/15" />
-                  </div>
-                  <HeaderBar
-                    ready={ready}
-                    authenticated={!!authenticated}
-                    addr={shortAddr}
-                    onLogin={() => login()}
-                    onWalletMenu={() => setWalletMenuOpen(true)}
-                    walletMenuOpen={walletMenuOpen}
-                  />
-                  <div ref={chatRef} className="overflow-y-auto px-5 py-6 flex-1">
-                    <div className="flex flex-col gap-6">
-                      {messages.map((m) => (
-                        <Bubble key={m.id} role={m.role} content={m.content} userAvatar={userAvatar} />
-                      ))}
-                      {busy && !firstChunkReceived && <TypingIndicator />}
+                            <div className="mx-auto w-[96vw] max-w-none">
+                <motion.div style={{ borderTopLeftRadius: sheetRadius, borderTopRightRadius: sheetRadius }}>
+                  <GlassCard className="h-[88vh] flex flex-col rounded-t-3xl shadow-2xl ring-1 ring-white/10">
+                    {/* bigger grab handle area */}
+                    <div className="px-3 pt-2 pb-1">
+                      <div className="mx-auto h-1.5 w-12 rounded-full bg-white/20" />
                     </div>
-                  </div>
-                  <QuickActions prompts={QUICK_PROMPTS} disabled={!authenticated || busy} onUsePrompt={submitPrompt} />
-                  <Composer
-                    value={input}
-                    disabled={!canInteract}
-                    onChange={setInput}
-                    onSubmit={() => submitPrompt(input)}
-                    onEnterSend={() => submitPrompt(input)}
-                    onClear={clearChat}
-                    placeholder={authenticated ? "Message Blockhead…" : "Connect wallet to chat"}
-                  />
-                </GlassCard>
+
+                    <HeaderBar
+                      ready={ready}
+                      authenticated={!!authenticated}
+                      addr={shortAddr}
+                      onLogin={() => login()}
+                      onWalletMenu={() => setWalletMenuOpen(true)}
+                      walletMenuOpen={walletMenuOpen}
+                    />
+
+                    <div
+                      ref={chatRef}
+                      className="overflow-y-auto px-5 py-6 flex-1 overscroll-contain"
+                    >
+                      <div className="flex flex-col gap-6">
+                        {messages.map((m) => (
+                          <Bubble key={m.id} role={m.role} content={m.content} userAvatar={userAvatar} />
+                        ))}
+                        {busy && !firstChunkReceived && <TypingIndicator />}
+                      </div>
+                    </div>
+
+                    <QuickActions
+                      prompts={QUICK_PROMPTS}
+                      disabled={!authenticated || busy}
+                      onUsePrompt={submitPrompt}
+                    />
+                    <Composer
+                      value={input}
+                      disabled={!ready || !authenticated || busy}
+                      onChange={setInput}
+                      onSubmit={() => submitPrompt(input)}
+                      onEnterSend={() => submitPrompt(input)}
+                      onClear={clearChat}
+                      placeholder={authenticated ? "Message Blockhead…" : "Connect wallet to chat"}
+                    />
+                  </GlassCard>
+                </motion.div>
               </div>
             </motion.main>
           </>
