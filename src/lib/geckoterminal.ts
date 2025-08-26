@@ -2,10 +2,10 @@ export type GeckoTrendingPool = {
   id: string;
   type: string;
   attributes: {
-    name?: string; // e.g., "TOKEN / USDC 0.3%"
+    name?: string;
     base_token_price_usd?: string;
     price_change_percentage?: { h1?: string; h6?: string; h24?: string };
-    url?: string; // not always present
+    url?: string;
   };
 };
 
@@ -40,7 +40,6 @@ export async function fetchTrendingPoolsGecko(opts?: {
     cache: "no-store",
   });
 
-  console.log(res);
 
   if (!res.ok && (res.status === 429 || res.status >= 500)) {
     await new Promise((r) => setTimeout(r, 300));
@@ -61,14 +60,13 @@ export async function fetchTrendingPoolsGecko(opts?: {
 export function formatGeckoTrendingForChat(pools: GeckoTrendingPool[], duration: "1h" | "6h" | "24h" = "1h"): string {
   if (!pools || pools.length === 0) return "Top gainers: No trending pools found right now.";
   const lines = pools.map((p, i) => {
-    const name = p.attributes?.name ?? "?"; // often like "ZORA / USDC 0.3%"
+    const name = p.attributes?.name ?? "?";
     const priceUsd = p.attributes?.base_token_price_usd ? Number(p.attributes.base_token_price_usd) : undefined;
     const changeObj = p.attributes?.price_change_percentage ?? {};
     const rawChange = (duration === "1h" ? changeObj.h1 : duration === "6h" ? changeObj.h6 : changeObj.h24) ?? undefined;
     const chNum = rawChange !== undefined ? Number(rawChange) : undefined;
     const priceText = priceUsd !== undefined && Number.isFinite(priceUsd) ? `$${priceUsd.toFixed(6)}` : "?";
     const changeText = chNum !== undefined && Number.isFinite(chNum) ? `${chNum.toFixed(1)}%` : "?%";
-    // No canonical URL in payload; keep name only
     return `${i + 1}. ${name} — ${priceText} (${changeText})`;
   });
   return ["Top gainers (trending):", ...lines].join("\n");

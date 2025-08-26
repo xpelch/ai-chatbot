@@ -43,7 +43,7 @@ Answer quality rules:
 
 function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
-  const baseURL = process.env.AI_API_BASE_URL; // Optional (e.g., OpenRouter)
+  const baseURL = process.env.AI_API_BASE_URL;
   if (!apiKey) {
     throw new Error(
       "Missing OPENAI_API_KEY. Please set it in your environment (.env.local)."
@@ -108,7 +108,6 @@ export async function POST(req: NextRequest) {
                 if (piece) controller.enqueue(encoder.encode(piece));
               }
             } catch {
-              // swallow stream errors; the finally will close
             } finally {
               controller.close();
             }

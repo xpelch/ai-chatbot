@@ -1,9 +1,7 @@
 ---
 description: Use this rule to create/update/read a task list for a feature implementation and keep track of the progress.
-globs:
-alwaysApply: true
+alwaysApply: false
 ---
-
 ---
 
 description: Enforce a clean, structured task-list workflow in all project task docs

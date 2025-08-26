@@ -15,7 +15,7 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
   const isSystem = role === "system";
 
   const base =
-    "w-full rounded-3xl px-4 py-3 text-[15px] leading-relaxed break-words shadow-lg";
+    "w-full rounded-3xl px-4 py-3 leading-relaxed break-words shadow-lg";
   const style = isUser
     ? "bg-gradient-to-br from-orange-500 to-orange-600 text-white"
     : isError
@@ -28,12 +28,12 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
     ? "grid grid-cols-[1fr_40px] items-end gap-3"
     : "grid grid-cols-[40px_1fr] items-end gap-3";
 
-  // Detect special content cards
+  const textSize = !isUser && !isError && !isSystem ? "text-[14px]" : "text-[15px]";
+
   const wallet = !isUser && !isError && !isSystem ? parseWalletSummary(content) : null;
   const gainers = !isUser && !isError && !isSystem ? parseTopGainers(content) : null;
   const gas = !isUser && !isError && !isSystem ? parseGasSummary(content) : null;
 
-  // If it's a special card, render it directly without the bubble wrapper
   if (wallet || gainers || gas) {
     return (
       <div className={grid}>
@@ -159,7 +159,7 @@ export default function Bubble({ role, content, userAvatar }: { role: "user" | "
           (isUser ? "col-start-1 col-end-2 justify-self-end" : "col-start-2 col-end-3 justify-self-start")
         }
       >
-        <div className={`${base} ${style}`}>
+        <div className={`${base} ${style} ${textSize}`}>
           <div className="prose prose-invert prose-sm max-w-none prose-li:marker:text-white/80 prose-ol:text-white prose-ul:text-white prose-li:my-0 prose-ul:my-2 prose-ol:my-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6 [&_li]:my-1 [&_code]:text-orange-200 [&_pre]:bg-black/30 [&_pre]:p-3 [&_pre]:rounded-xl [&_pre_code]:text-[13px] [&_code]:rounded [&_code]:bg-black/30 [&_code]:px-1.5 [&_code]:py-0.5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:max-w-full [&_pre_code]:break-words [&_code]:break-words">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}

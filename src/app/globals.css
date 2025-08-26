@@ -16,7 +16,7 @@
   :root {
     --background: #111111;
     --foreground: #ededed;
-    --scrollbar-thumb: rgba(249, 115, 22, 0.35); /* orange-500 with opacity */
+    --scrollbar-thumb: rgba(249, 115, 22, 0.35);
     --scrollbar-thumb-hover: rgba(249, 115, 22, 0.55);
     --scrollbar-track: rgba(255, 255, 255, 0.06);
   }
@@ -28,7 +28,6 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Custom animations for mobile chat unfolding */
 @keyframes slide-in-from-bottom-4 {
   from {
     transform: translateY(1rem) scale(0.95);

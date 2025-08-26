@@ -8,7 +8,7 @@ import { HiOutlineClipboardDocument, HiArrowPath } from "react-icons/hi2";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 const BASE_RPC = "https://base-rpc.publicnode.com";
-const CHAINLINK_ETH_USD: Address = "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"; // Base
+const CHAINLINK_ETH_USD: Address = "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70";
 const publicClient = createPublicClient({ transport: http(BASE_RPC) });
 
 interface WalletMenuProps {
@@ -33,7 +33,6 @@ function fmtUsd(n: number) {
   }).format(n);
 }
 
-/* =================== Wallet Panel (content only) =================== */
 function WalletPanel({
   addressShort,
   balanceEth = 0,
@@ -62,7 +61,6 @@ function WalletPanel({
         shadow-[0_24px_80px_rgba(0,0,0,0.5)] overflow-hidden
       "
     >
-      {/* Header */}
       <header className="relative px-5 py-4 border-b border-zinc-800 bg-gradient-to-br from-zinc-950 to-zinc-900">
         <div className="flex items-center gap-3">
           <div className="grid place-items-center h-9 w-9 rounded-xl bg-orange-500/15 ring-1 ring-orange-500/30">
@@ -76,7 +74,6 @@ function WalletPanel({
         </div>
       </header>
 
-      {/* Address */}
       <div className="px-5 py-4 space-y-2">
         <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
           Address
@@ -93,7 +90,6 @@ function WalletPanel({
         </div>
       </div>
 
-      {/* Balance */}
       <div className="px-5 pb-4">
         <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
           Balance
@@ -143,7 +139,6 @@ function WalletPanel({
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="px-5 pb-5 pt-3 border-t border-zinc-900 bg-zinc-950/70">
         <button
           onClick={onDisconnect}

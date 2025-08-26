@@ -1,6 +1,3 @@
-/* ===========================
- * Types, constants, and utils
- * =========================== */
 export type ChatRole = "user" | "assistant" | "system" | "error";
 
 export type ChatMessage = {
@@ -97,11 +94,9 @@ export async function fetchAiStream(
 
   const resetWatchdog = () => {
     if (timer) clearTimeout(timer);
-    // watchdog: si aucun chunk pendant timeoutMs → abort
     timer = setTimeout(() => ctrl.abort(), timeoutMs);
   };
 
-  // Un seul TextDecoder partagé pour gérer les frontières UTF-8
   const decoder = new TextDecoder();
 
   try {
@@ -114,14 +109,11 @@ export async function fetchAiStream(
       signal: ctrl.signal,
     });
 
-    // Si le serveur renvoie une erreur HTTP, on la propage (utile pour l’UI)
     if (!res.ok) {
-      // Essaie de lire un message d’erreur si disponible
       const msg = await res.text().catch(() => "");
       throw new Error(`HTTP ${res.status}${msg ? `: ${msg}` : ""}`);
     }
 
-    // Pas de body → tente fallback texte (certains env désactivent les streams)
     if (!res.body) {
       const text = await res.text().catch(() => "");
       if (text) onChunk(text);
@@ -134,28 +126,24 @@ export async function fetchAiStream(
         const { value, done } = await reader.read();
         if (done) break;
 
-        // Reset du watchdog à chaque chunk reçu
         resetWatchdog();
 
         if (value && value.byteLength > 0) {
-          // decode streamé pour gérer les coupures multi-octets
           const chunk = decoder.decode(value, { stream: true });
           if (chunk) onChunk(chunk);
         }
       }
 
-      // Flush final pour tout octet UTF-8 restant dans le buffer
       const tail = decoder.decode();
       if (tail) onChunk(tail);
     } finally {
       reader.releaseLock?.();
     }
   } catch (err) {
-    // Si c’est un abort (timeout watchdog ou externe), surface un message explicite
     if (isAbortError(err)) {
       throw new Error("Request aborted (timeout or cancellation).");
     }
-    throw err; // propage l’erreur pour que l’appelant gère le fallback
+    throw err;
   } finally {
     if (timer) clearTimeout(timer);
   }

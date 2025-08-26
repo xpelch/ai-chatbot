@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
 
-## Getting Started
+# Blockhead — On‑chain chat copilot
 
-First, run the development server:
+Compact, fast, and clean chat UI for on‑chain alpha: trending pairs, gas, wallet glance, and quick prompts — powered by a tiny Next.js app and a streaming AI endpoint.
+
+<p>
+  <a href="https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs"><img alt="Next.js" src="https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs" /></a>
+  <a href="https://img.shields.io/badge/React-19-61dafb?logo=react"><img alt="React" src="https://img.shields.io/badge/React-19-61dafb?logo=react" /></a>
+  <a href="https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript" /></a>
+  <a href="./LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-orange" /></a>
+  <a href="https://img.shields.io/badge/PRs-welcome-brightgreen"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen" /></a>
+  
+</p>
+
+<br/>
+
+<img src="public/desktop_chat.png" alt="Desktop chat" width="820"/>
+<br/>
+<img src="public/desktop_chat_2.png" alt="Desktop chat 2" width="820"/>
+<br/>
+<img src="public/desktop_wallet.png" alt="Wallet modal" width="820"/>
+<br/>
+<img src="public/mobile_chat.png" alt="Mobile bottom sheet" width="380"/>
+
+</div>
+
+## Demo in 20 seconds
 
 ```bash
+git clone <your-fork-or-this-repo>.git blockhead && cd blockhead
+npm i
+echo OPENAI_API_KEY=sk-... > .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## What this is
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- A minimal Next.js 15 app using the App Router.
+- A polished chat surface with animated docking on desktop and a bottom‑sheet on mobile.
+- Wallet glance modal (Base) with on‑chain balance and Chainlink ETH/USD price.
+- Local commands for quick utility: “My bags”, “Top gainers”, “Gas now”, “Flip a coin”, “help”.
+- Streaming AI replies via a simple `/api/ai` route (OpenAI‑compatible provider).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## How it works
 
-## Learn More
+- `src/components/ai-terminal/AiTerminal.tsx` renders the chat surface, handles streaming, and mobile/desktop layouts.
+- `src/app/api/ai/route.ts` proxies prompts to your AI provider with graceful fallbacks.
+- `src/lib/*` contains helpers for gas, GeckoTerminal trending, wallet balance, and UI parsing.
+- `src/components/WalletMenu.tsx` shows the wallet modal with on‑chain data.
 
-To learn more about Next.js, take a look at the following resources:
+## Getting started
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1) Install and run
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm i
+npm run dev
+```
 
-## Deploy on Vercel
+2) Environment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Create `.env.local` with:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+OPENAI_API_KEY=sk-...
+# Optional if using a router provider
+AI_API_BASE_URL=https://openrouter.ai/api/v1
+AI_MODEL_NAME=gpt-5-nano
+NEXT_PUBLIC_PRIVY_APP_ID= # optional; if empty, the UI still renders without auth
+```
+
+3) Open the app at `http://localhost:3000`.
+
+## Commands you can type
+
+- `My bags` — wallet summary card for connected address (Base).
+- `Top gainers` — GeckoTerminal trending pools snapshot.
+- `Gas now` — Base gas suggestions formatted for quick sending.
+- `Flip a coin 🎲` — have fun.
+- `help` — list commands.
+
+## Tech
+
+- Next.js 15 App Router, React 19, TypeScript
+- framer‑motion for subtle motion (dock/bottom‑sheet)
+- react‑markdown + highlight.js for rich replies
+- viem for on‑chain reads
+- Tailwind v4 (inline theme) for styling
+
+## License
+
+MIT — see `LICENSE`.

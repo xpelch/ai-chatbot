@@ -10,7 +10,6 @@ type ProvidersProps = {
 export default function Providers({ children }: ProvidersProps) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
 
-  // Gracefully no-op if no app ID is provided (e.g., during local setup or build)
   if (!appId) {
     return <>{children}</>;
   }

@@ -5,7 +5,6 @@ const COOKIE_NAME = "app_auth";
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow public paths
   const isPublic =
     pathname.startsWith("/unlock") ||
     pathname.startsWith("/api/unlock") ||
